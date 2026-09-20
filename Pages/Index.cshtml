@@ -172,7 +172,7 @@
 
       function exportDatabase() {
         const json =
-                                          @Html.Raw(Model.ExportJson);
+                                            @Html.Raw(Model.ExportJson);
 
         const blob =
           new Blob(
@@ -251,6 +251,35 @@
             genderMatches &&
             displayMatches;
         });
+
+        if (
+          selectedRace !== "" &&
+          selectedRace !== "__empty__" &&
+          displayMode !== "full"
+        ) {
+          const seen = new Set();
+
+          filtered.splice(
+            0,
+            filtered.length,
+            ...filtered.filter(character => {
+              const value =
+                displayMode === "name"
+                  ? character.name
+                  : character.familyName;
+
+              const key =
+                value.trim().toLowerCase();
+
+              if (seen.has(key)) {
+                return false;
+              }
+
+              seen.add(key);
+              return true;
+            })
+          );
+        }
 
         const nameHeader =
           document.getElementById("nameHeader");
