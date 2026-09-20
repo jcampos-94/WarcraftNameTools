@@ -1,28 +1,27 @@
-using System.Text.Json;
+using MongoDB.Driver;
 using WarcraftNameTools.Models;
 
 namespace WarcraftNameTools.Services;
 
 public class CharacterRepository
 {
-  private readonly string _fileName;
+  private readonly IMongoCollection<CharacterRecord> _collection;
 
-  public CharacterRepository(string fileName)
+  public CharacterRepository(
+      IMongoDatabase database)
   {
-    _fileName = fileName;
+    _collection =
+        database.GetCollection<CharacterRecord>(
+            "characters"
+        );
   }
 
   public List<CharacterRecord> Load()
   {
-    if (!File.Exists(_fileName))
-    {
-      return new List<CharacterRecord>();
-    }
-
-    string json = File.ReadAllText(_fileName);
-
-    return JsonSerializer.Deserialize<List<CharacterRecord>>(json)
-        ?? new List<CharacterRecord>();
+    return _collection
+        .Find(_ => true)
+        .SortBy(character => character.Id)
+        .ToList();
   }
 
   public int GetNextId(List<CharacterRecord> characters)
@@ -44,16 +43,13 @@ public class CharacterRepository
 
   public void Save(List<CharacterRecord> characters)
   {
-    JsonSerializerOptions options = new()
+    _collection.DeleteMany(_ => true);
+
+    if (characters.Count == 0)
     {
-      WriteIndented = true
-    };
+      return;
+    }
 
-    string json = JsonSerializer.Serialize(
-        characters,
-        options
-    );
-
-    File.WriteAllText(_fileName, json);
+    _collection.InsertMany(characters);
   }
 }

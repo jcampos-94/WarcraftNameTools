@@ -16,10 +16,75 @@
 
 <body>
 
-  <h1>Warcraft Name Tools</h1>
+  <h1><a href="/">Warcraft Name Tools</a></h1>
 
-  <form method="post" action="/sync">
-    <button type="submit">Sync with Warcraft Wiki</button>
+  @if (Model.Sync)
+  {
+    <div class="sync-result">
+
+      <h2>Sync completed</h2>
+
+      <p>
+        <strong>Target race:</strong>
+        @Model.SyncTargetRace
+      </p>
+
+      <p>
+        <strong>Wiki category pages:</strong>
+        @Model.SyncCategoryPages
+      </p>
+
+      <p>
+        <strong>Pages retrieved:</strong>
+        @Model.SyncPagesRetrieved
+      </p>
+
+      <p>
+        <strong>Total characters:</strong>
+        @Model.SyncTotalRecords
+      </p>
+
+      <p>
+        <strong>New characters:</strong>
+        @Model.SyncNewCharacters
+      </p>
+
+      @if (!string.IsNullOrWhiteSpace(Model.SyncChangedIds))
+      {
+        <h3>Characters requiring review</h3>
+
+        <p>
+          Source race information changed for the following character IDs:
+          @Model.SyncChangedIds
+        </p>
+      }
+
+    </div>
+  }
+
+  <form method="post" action="/sync" class="sync-form" id="syncForm">
+    @Html.AntiForgeryToken()
+
+    <div class="filter">
+      <label for="targetRace">Sync Race</label>
+
+      <select id="targetRace">
+        @foreach (string race in Model.AvailableRaces)
+        {
+          <option value="@race">@race</option>
+        }
+      </select>
+      <input type="hidden" id="syncTargetRace" name="targetRace" />
+    </div>
+
+    <button type="submit" id="syncButton">
+      Sync
+    </button>
+
+    <span id="syncStatus" style="display: none;">
+      Syncing...
+    </span>
+
   </form>
 
   <button type="button" onclick="exportDatabase()">
@@ -51,8 +116,6 @@
       <label for="race">Race</label>
 
       <select id="race" onchange="filterCharacters()">
-        <option value="">All races</option>
-
         <option value="">All races</option>
         <option value="__empty__" selected>No race</option>
 
@@ -109,7 +172,7 @@
 
       function exportDatabase() {
         const json =
-                  @Html.Raw(Model.ExportJson);
+                                          @Html.Raw(Model.ExportJson);
 
         const blob =
           new Blob(
@@ -478,6 +541,33 @@
       }
 
       filterCharacters();
+
+      document
+        .getElementById("syncForm")
+        .addEventListener("submit", function () {
+
+          const syncButton =
+            document.getElementById("syncButton");
+
+          const targetRace =
+            document.getElementById("targetRace");
+
+          const syncTargetRace =
+            document.getElementById("syncTargetRace");
+
+          const syncStatus =
+            document.getElementById("syncStatus");
+
+          syncTargetRace.value =
+            targetRace.value;
+
+          syncButton.disabled = true;
+          syncButton.textContent = "Syncing...";
+
+          targetRace.disabled = true;
+
+          syncStatus.style.display = "";
+        });
   </script>
 
 </body>

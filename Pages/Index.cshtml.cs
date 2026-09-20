@@ -15,6 +15,9 @@ public class IndexModel : PageModel
 
   public List<string> Races { get; private set; } = new();
 
+  public List<string> AvailableRaces { get; } =
+    RaceCatalog.AvailableRaces;
+
   public string CharactersJson { get; private set; } = "[]";
 
   public string ExportJson { get; private set; } = "[]";
@@ -24,8 +27,23 @@ public class IndexModel : PageModel
     _repository = repository;
   }
 
-  public void OnGet()
+  public void OnGet(
+    bool sync,
+    string? targetRace,
+    int categoryPages,
+    int pagesRetrieved,
+    int totalRecords,
+    int newCharacters,
+    string? changedIds)
   {
+    Sync = sync;
+    SyncTargetRace = targetRace;
+    SyncCategoryPages = categoryPages;
+    SyncPagesRetrieved = pagesRetrieved;
+    SyncTotalRecords = totalRecords;
+    SyncNewCharacters = newCharacters;
+    SyncChangedIds = changedIds;
+
     Characters = _repository.Load();
 
     Races = Characters
@@ -88,4 +106,25 @@ public class IndexModel : PageModel
       return Page();
     }
   }
+
+  [BindProperty(SupportsGet = true)]
+  public bool Sync { get; set; }
+
+  [BindProperty(SupportsGet = true)]
+  public string? SyncTargetRace { get; set; }
+
+  [BindProperty(SupportsGet = true)]
+  public int SyncCategoryPages { get; set; }
+
+  [BindProperty(SupportsGet = true)]
+  public int SyncPagesRetrieved { get; set; }
+
+  [BindProperty(SupportsGet = true)]
+  public int SyncTotalRecords { get; set; }
+
+  [BindProperty(SupportsGet = true)]
+  public int SyncNewCharacters { get; set; }
+
+  [BindProperty(SupportsGet = true)]
+  public string? SyncChangedIds { get; set; }
 }

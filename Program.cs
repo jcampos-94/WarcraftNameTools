@@ -1,30 +1,85 @@
-﻿using WarcraftNameTools.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using MongoDB.Bson;
+using MongoDB.Driver;
+using WarcraftNameTools.Models;
 using WarcraftNameTools.Services;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddRazorPages();
-
-builder.Services.AddSingleton<CharacterRepository>(
-    new CharacterRepository("character_names.json")
+builder.Configuration.AddUserSecrets(
+    "bb30e19a-1f37-45bc-a0c0-2fe8199ed174"
 );
 
+string mongoConnectionString =
+    builder.Configuration["MongoDb:ConnectionString"]
+    ?? throw new InvalidOperationException(
+        "MongoDB connection string is not configured."
+    );
+
+string mongoDatabaseName =
+    builder.Configuration["MongoDb:DatabaseName"]
+    ?? throw new InvalidOperationException(
+        "MongoDB database name is not configured."
+    );
+
+MongoClient mongoClient =
+    new(mongoConnectionString);
+
+IMongoDatabase mongoDatabase =
+    mongoClient.GetDatabase(mongoDatabaseName);
+
+builder.Services.AddSingleton<CharacterRepository>(
+    new CharacterRepository(mongoDatabase)
+);
+
+mongoDatabase.RunCommand<BsonDocument>(
+    new BsonDocument("ping", 1)
+);
+
+builder.Services.AddRazorPages();
+
 WebApplication app = builder.Build();
+
 app.UseStaticFiles();
+app.UseAntiforgery();
 
 CharacterRepository repository =
-    new("character_names.json");
+    new(mongoDatabase);
 
 WarcraftWikiApi api = new();
 
 CharacterImporter importer =
     new(api, repository);
 
-app.MapPost("/sync", async () =>
+app.MapPost("/sync", async ([FromForm] string targetRace) =>
 {
-    await importer.Import("Night elf");
+    if (!RaceCatalog.AvailableRaces.Contains(
+            targetRace,
+            StringComparer.OrdinalIgnoreCase))
+    {
+        return Results.BadRequest(
+            "The selected race is not supported."
+        );
+    }
 
-    return Results.Redirect("/");
+    ImportResult result =
+        await importer.Import(targetRace);
+
+    string changedIds =
+        string.Join(
+            ",",
+            result.ChangedSourceRaces
+        );
+
+    return Results.Redirect(
+        $"/?sync=true" +
+        $"&targetRace={Uri.EscapeDataString(result.TargetRace)}" +
+        $"&categoryPages={result.CategoryPages}" +
+        $"&pagesRetrieved={result.PagesRetrieved}" +
+        $"&totalRecords={result.TotalRecords}" +
+        $"&newCharacters={result.NewCharacters}" +
+        $"&changedIds={Uri.EscapeDataString(changedIds)}"
+    );
 });
 
 app.MapPost("/ignore", (int id) =>

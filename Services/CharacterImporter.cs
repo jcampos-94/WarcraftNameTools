@@ -16,7 +16,7 @@ public class CharacterImporter
     _repository = repository;
   }
 
-  public async Task Import(string targetRace)
+  public async Task<ImportResult> Import(string targetRace)
   {
     List<CharacterRecord> results =
         _repository.Load();
@@ -31,6 +31,8 @@ public class CharacterImporter
 
     int nextId =
         _repository.GetNextId(results);
+
+    int newCharacters = 0;
 
     List<int> changedSourceRaces = new();
 
@@ -149,40 +151,37 @@ public class CharacterImporter
         Gender = gender,
         Races = [""]
       });
+
+      newCharacters++;
     }
 
     _repository.SortById(results);
 
     _repository.Save(results);
 
-    Console.WriteLine();
-    Console.WriteLine(
-        $"Target race: {targetRace}"
-    );
-    Console.WriteLine(
-        $"Category pages: {pageNames.Count}"
-    );
-    Console.WriteLine(
-        $"Pages retrieved: {pages.Count}"
-    );
-    Console.WriteLine(
-        $"Total records: {results.Count}"
-    );
-    Console.WriteLine(
-        "Results saved to: character_names.json"
-    );
-
-    if (changedSourceRaces.Count > 0)
+    return new ImportResult
     {
-      Console.WriteLine();
-      Console.WriteLine(
-          "Characters with changed source races:"
-      );
-
-      foreach (int id in changedSourceRaces)
-      {
-        Console.WriteLine($"ID: {id}");
-      }
-    }
+      TargetRace = targetRace,
+      CategoryPages = pageNames.Count,
+      PagesRetrieved = pages.Count,
+      TotalRecords = results.Count,
+      NewCharacters = newCharacters,
+      ChangedSourceRaces = changedSourceRaces
+    };
   }
+}
+
+public class ImportResult
+{
+  public string TargetRace { get; set; } = "";
+
+  public int CategoryPages { get; set; }
+
+  public int PagesRetrieved { get; set; }
+
+  public int TotalRecords { get; set; }
+
+  public int NewCharacters { get; set; }
+
+  public List<int> ChangedSourceRaces { get; set; } = new();
 }
