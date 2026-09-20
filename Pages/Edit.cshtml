@@ -1,0 +1,82 @@
+@page
+@model WarcraftNameTools.Pages.EditModel
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Edit Character</title>
+
+  <link rel="stylesheet" href="~/css/site.css" />
+</head>
+
+<body class="edit-page">
+
+  <h1>Edit Character</h1>
+  
+  <h2>Source Data</h2>
+
+  <div class="edit-section">
+
+    <div class="edit-field">
+      <label>Source Name</label>
+      <input type="text" value="@Model.Character.SourceName" readonly />
+    </div>
+
+    <div class="edit-field">
+      <label>Source Races</label>
+      <input type="text" value="@Model.Character.SourceRaces" readonly />
+    </div>
+
+    <div class="edit-field">
+      <label>Gender</label>
+      <input type="text" value="@Model.Character.Gender" readonly />
+    </div>
+
+  </div>
+
+  <h2>Editable Data</h2>
+
+  <form method="post" asp-route-id="@Model.Character.Id">
+
+    <div class="edit-field">
+      <label>Name</label>
+      <input type="text" name="Name" value="@Model.Name" />
+    </div>
+
+    <div class="edit-field">
+      <label>Family Name</label>
+      <input type="text" name="FamilyName" value="@Model.FamilyName" />
+    </div>
+
+    <div class="edit-field">
+      <label>Races</label>
+      <input type="text" name="RacesText" value="@Model.RacesText" />
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Message))
+    {
+      <p class="edit-message">@Model.Message</p>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+      <p class="edit-error">@Model.ErrorMessage</p>
+    }
+
+    <div class="edit-actions">
+
+      <button type="submit">Save</button>
+
+      <a href="/">Back to list</a>
+
+    </div>
+
+  </form>
+
+</body>
+
+</html>

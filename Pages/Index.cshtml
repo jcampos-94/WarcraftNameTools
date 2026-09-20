@@ -1,0 +1,485 @@
+@page
+@model WarcraftNameTools.Pages.IndexModel
+
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Warcraft Name Tools</title>
+
+  <link rel="stylesheet" href="~/css/site.css" />
+
+</head>
+
+<body>
+
+  <h1>Warcraft Name Tools</h1>
+
+  <form method="post" action="/sync">
+    <button type="submit">Sync with Warcraft Wiki</button>
+  </form>
+
+  <button type="button" onclick="exportDatabase()">
+    Export Database
+  </button>
+
+  <form method="post" enctype="multipart/form-data">
+
+    <input type="file" name="ImportFile" accept=".json" required />
+
+    <button type="submit">
+      Import Database
+    </button>
+
+  </form>
+
+  <div class="filter">
+    <label for="status">Status</label>
+
+    <select id="status" onchange="filterCharacters()">
+      <option value="active">Active characters</option>
+      <option value="ignored">Ignored characters</option>
+    </select>
+  </div>
+
+  <div class="filters">
+
+    <div class="filter">
+      <label for="race">Race</label>
+
+      <select id="race" onchange="filterCharacters()">
+        <option value="">All races</option>
+
+        <option value="">All races</option>
+        <option value="__empty__" selected>No race</option>
+
+        @foreach (string race in Model.Races)
+        {
+          <option value="@race">@race</option>
+        }
+      </select>
+    </div>
+
+    <div class="filter">
+      <label for="gender">Gender</label>
+
+      <select id="gender" onchange="filterCharacters()">
+        <option value="">All genders</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+      </select>
+    </div>
+
+    <div class="filter">
+      <label for="display">Display</label>
+
+      <select id="display" onchange="filterCharacters()">
+        <option value="full">Full names</option>
+        <option value="name">Names only</option>
+        <option value="family">Family names only</option>
+      </select>
+    </div>
+
+  </div>
+
+  <p id="count"></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th id="nameHeader">Name</th>
+        <th id="familyHeader">Family Name</th>
+        <th id="genderHeader">Gender</th>
+        <th id="racesHeader">Races</th>
+        <th id="editHeader">Edit</th>
+      </tr>
+    </thead>
+
+    <tbody id="characters">
+    </tbody>
+  </table>
+
+  <div id="characterCards"></div>
+
+  <script>
+      const characters = @Html.Raw(Model.CharactersJson);
+
+      function exportDatabase() {
+        const json =
+                  @Html.Raw(Model.ExportJson);
+
+        const blob =
+          new Blob(
+            [JSON.stringify(json, null, 2)],
+            { type: "application/json" }
+          );
+
+        const url =
+          URL.createObjectURL(blob);
+
+        const link =
+          document.createElement("a");
+
+        link.href = url;
+        link.download = "character_names.json";
+
+        link.click();
+
+        URL.revokeObjectURL(url);
+      }
+
+      function filterCharacters() {
+        const tbody =
+          document.getElementById("characters");
+
+        const characterCards =
+          document.getElementById("characterCards");
+
+        tbody.innerHTML = "";
+        characterCards.innerHTML = "";
+
+        const selectedRace =
+          document.getElementById("race").value;
+
+        const selectedGender =
+          document.getElementById("gender").value;
+
+        const selectedStatus =
+          document.getElementById("status").value;
+
+        const displayMode =
+          document.getElementById("display").value;
+
+        const filtered = characters.filter(character => {
+          const statusMatches =
+            selectedStatus === "active"
+              ? !character.ignore
+              : character.ignore;
+
+          const raceMatches =
+            selectedRace === ""
+              ? true
+              : selectedRace === "__empty__"
+                ? character.races.every(
+                  race => race.trim() === ""
+                )
+                : character.races.some(
+                  race =>
+                    race.toLowerCase() ===
+                    selectedRace.toLowerCase()
+                );
+
+          const genderMatches =
+            selectedGender === "" ||
+            character.gender === selectedGender;
+
+          const displayMatches =
+            displayMode === "full"
+              ? true
+              : displayMode === "name"
+                ? character.name.trim() !== ""
+                : character.familyName.trim() !== "";
+
+          return statusMatches &&
+            raceMatches &&
+            genderMatches &&
+            displayMatches;
+        });
+
+        const nameHeader =
+          document.getElementById("nameHeader");
+
+        const familyHeader =
+          document.getElementById("familyHeader");
+
+        const genderHeader =
+          document.getElementById("genderHeader");
+
+        const racesHeader =
+          document.getElementById("racesHeader");
+
+        const editHeader =
+          document.getElementById("editHeader");
+
+        nameHeader.style.display =
+          displayMode === "family"
+            ? "none"
+            : "";
+
+        familyHeader.style.display =
+          displayMode === "name"
+            ? "none"
+            : "";
+
+        genderHeader.style.display =
+          displayMode === "full"
+            ? ""
+            : "none";
+
+        racesHeader.style.display =
+          displayMode === "full"
+            ? ""
+            : "none";
+
+        editHeader.style.display =
+          displayMode === "full"
+            ? ""
+            : "none";
+
+        filtered
+          .sort((a, b) => {
+            const valueA =
+              displayMode === "family"
+                ? a.familyName
+                : a.name;
+
+            const valueB =
+              displayMode === "family"
+                ? b.familyName
+                : b.name;
+
+            return valueA.localeCompare(
+              valueB,
+              undefined,
+              { sensitivity: "base" }
+            );
+          })
+          .forEach(character => {
+
+            // Desktop table
+
+            const row =
+              document.createElement("tr");
+
+            const nameCell =
+              document.createElement("td");
+
+            const familyCell =
+              document.createElement("td");
+
+            const genderCell =
+              document.createElement("td");
+
+            const racesCell =
+              document.createElement("td");
+
+            const editCell =
+              document.createElement("td");
+
+            editCell.style.display =
+              displayMode === "full"
+                ? ""
+                : "none";
+
+            if (displayMode === "full") {
+              nameCell.textContent = character.name;
+              familyCell.textContent = character.familyName;
+            }
+            else if (displayMode === "name") {
+              nameCell.textContent = character.name;
+              familyCell.style.display = "none";
+              genderCell.style.display = "none";
+              racesCell.style.display = "none";
+            }
+            else {
+              nameCell.style.display = "none";
+              familyCell.textContent = character.familyName;
+              genderCell.style.display = "none";
+              racesCell.style.display = "none";
+            }
+
+            genderCell.textContent = character.gender;
+
+            racesCell.textContent =
+              character.races
+                .filter(race => race.trim() !== "")
+                .join(", ");
+
+            const editLink =
+              document.createElement("a");
+
+            editLink.href =
+              `/Edit?id=${character.id}`;
+
+            editLink.textContent =
+              "Edit";
+
+            editCell.appendChild(editLink);
+
+            const ignoreForm =
+              document.createElement("form");
+
+            ignoreForm.method = "post";
+
+            ignoreForm.action =
+              character.ignore
+                ? `/unignore?id=${character.id}`
+                : `/ignore?id=${character.id}`;
+
+            const ignoreButton =
+              document.createElement("button");
+
+            ignoreButton.type = "submit";
+
+            ignoreButton.textContent =
+              character.ignore
+                ? "Unignore"
+                : "Ignore";
+
+            ignoreForm.appendChild(ignoreButton);
+
+            editCell.appendChild(ignoreForm);
+
+            row.appendChild(nameCell);
+            row.appendChild(familyCell);
+            row.appendChild(genderCell);
+            row.appendChild(racesCell);
+            row.appendChild(editCell);
+
+            tbody.appendChild(row);
+
+
+            // Mobile card
+
+            const card =
+              document.createElement("div");
+
+            card.className =
+              "character-card";
+
+            if (displayMode === "full") {
+              const name =
+                document.createElement("div");
+
+              name.className =
+                "character-card-name";
+
+              name.textContent =
+                character.name +
+                (
+                  character.familyName.trim() !== ""
+                    ? " " + character.familyName
+                    : ""
+                );
+
+              card.appendChild(name);
+
+              const gender =
+                document.createElement("div");
+
+              gender.className =
+                "character-card-field";
+
+              gender.innerHTML =
+                `<span class="character-card-label">Gender:</span> ${character.gender}`;
+
+              card.appendChild(gender);
+
+              const races =
+                document.createElement("div");
+
+              races.className =
+                "character-card-field";
+
+              races.innerHTML =
+                `<span class="character-card-label">Races:</span> ${character.races
+                  .filter(race => race.trim() !== "")
+                  .join(", ")
+                }`;
+
+              card.appendChild(races);
+            }
+            else if (displayMode === "name") {
+              const name =
+                document.createElement("div");
+
+              name.className =
+                "character-card-name";
+
+              name.textContent =
+                character.name;
+
+              card.appendChild(name);
+            }
+            else {
+              const family =
+                document.createElement("div");
+
+              family.className =
+                "character-card-name";
+
+              family.textContent =
+                character.familyName;
+
+              card.appendChild(family);
+            }
+
+            if (displayMode === "full") {
+              const actions =
+                document.createElement("div");
+
+              actions.className =
+                "character-card-actions";
+
+              const mobileEditLink =
+                document.createElement("a");
+
+              mobileEditLink.href =
+                `/Edit?id=${character.id}`;
+
+              mobileEditLink.textContent =
+                "Edit";
+
+              actions.appendChild(
+                mobileEditLink
+              );
+
+              const mobileIgnoreForm =
+                document.createElement("form");
+
+              mobileIgnoreForm.method =
+                "post";
+
+              mobileIgnoreForm.action =
+                character.ignore
+                  ? `/unignore?id=${character.id}`
+                  : `/ignore?id=${character.id}`;
+
+              const mobileIgnoreButton =
+                document.createElement("button");
+
+              mobileIgnoreButton.type =
+                "submit";
+
+              mobileIgnoreButton.textContent =
+                character.ignore
+                  ? "Unignore"
+                  : "Ignore";
+
+              mobileIgnoreForm.appendChild(
+                mobileIgnoreButton
+              );
+
+              actions.appendChild(
+                mobileIgnoreForm
+              );
+
+              card.appendChild(actions);
+            }
+
+            characterCards.appendChild(card);
+          });
+
+        document.getElementById("count").textContent =
+          `Showing ${filtered.length} of ${characters.length} characters`;
+      }
+
+      filterCharacters();
+  </script>
+
+</body>
+
+</html>

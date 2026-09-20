@@ -1,0 +1,24 @@
+# Build output
+bin/
+obj/
+
+# Visual Studio
+.vs/
+
+# User-specific Visual Studio files
+*.user
+*.suo
+
+# VS Code
+.vscode/
+
+# Local environment / secrets
+.env
+.env.*
+
+# Publish output
+publish/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -1,0 +1,93 @@
+using System.Diagnostics;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+
+// SINGLE CHARACTER TEST
+// WarcraftWikiApi api = new();
+
+// var result = await api.GetPageWikitext("Malefica");
+
+// Console.WriteLine();
+// Console.WriteLine("API response received.");
+// Console.WriteLine();
+
+// Process.Start(new ProcessStartInfo
+// {
+//   FileName = result.RequestUrl,
+//   UseShellExecute = true
+// });
+
+// MAIN PROGRAM
+WarcraftWikiApi api = new();
+
+List<string> pageNames = await api.GetCategoryMembers(
+    "Category:Night elf characters"
+);
+
+Dictionary<string, string> pages =
+    await api.GetWikitextBatch(pageNames);
+
+HashSet<string> raceValues = new(StringComparer.OrdinalIgnoreCase);
+
+int maleFemaleCount = 0;
+
+foreach (KeyValuePair<string, string> page in pages)
+{
+  string wikitext = page.Value;
+
+  Match genderMatch = Regex.Match(
+      wikitext,
+      @"^\s*\|\s*gender\s*=\s*(.+)$",
+      RegexOptions.Multiline | RegexOptions.IgnoreCase
+  );
+
+  if (!genderMatch.Success)
+  {
+    continue;
+  }
+
+  string gender = genderMatch.Groups[1].Value.Trim();
+
+  if (gender != "Male" && gender != "Female")
+  {
+    continue;
+  }
+
+  maleFemaleCount++;
+
+  Match racesMatch = Regex.Match(
+      wikitext,
+      @"^\s*\|\s*race\s*=\s*(.+)$",
+      RegexOptions.Multiline | RegexOptions.IgnoreCase
+  );
+
+  if (!racesMatch.Success)
+  {
+    continue;
+  }
+
+  string race = racesMatch.Groups[1].Value.Trim();
+
+  // if (races.Contains("formerly", StringComparison.OrdinalIgnoreCase))
+  // {
+  //   raceValues.Add(races);
+  // }
+  if (!string.IsNullOrWhiteSpace(race))
+  {
+    raceValues.Add(race);
+  }
+}
+
+const string outputFile = "race_values.txt";
+
+File.WriteAllLines(
+    outputFile,
+    raceValues.OrderBy(value => value)
+);
+
+Console.WriteLine();
+Console.WriteLine($"Category pages: {pageNames.Count}");
+Console.WriteLine($"Pages retrieved: {pages.Count}");
+Console.WriteLine($"Male/Female pages: {maleFemaleCount}");
+Console.WriteLine($"Distinct races values: {raceValues.Count}");
+Console.WriteLine($"Results saved to: {outputFile}");
