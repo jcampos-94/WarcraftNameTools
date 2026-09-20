@@ -170,4 +170,8 @@ app.MapPost("/import", async (IFormFile file) =>
 
 app.MapRazorPages();
 
+app.MapGet("/health", () =>
+    Results.StatusCode(StatusCodes.Status200OK)
+);
+
 app.Run();
