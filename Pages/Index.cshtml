@@ -17,6 +17,7 @@
 <body>
 
   <h1><a href="/">Warcraft Name Tools</a></h1>
+  <p>v1.0.1</p>
 
   @if (Model.Sync)
   {
@@ -170,9 +171,11 @@
   <script>
       const characters = @Html.Raw(Model.CharactersJson);
 
+      let renderVersion = 0;
+
       function exportDatabase() {
         const json =
-                                            @Html.Raw(Model.ExportJson);
+              @Html.Raw(Model.ExportJson);
 
         const blob =
           new Blob(
@@ -339,7 +342,37 @@
               { sensitivity: "base" }
             );
           })
-          .forEach(character => {
+          ;
+
+        const currentRenderVersion =
+          ++renderVersion;
+
+        const batchSize = 100;
+
+        function renderBatch(startIndex) {
+          if (currentRenderVersion !== renderVersion) {
+            return;
+          }
+
+          const endIndex =
+            Math.min(
+              startIndex + batchSize,
+              filtered.length
+            );
+
+          const tableFragment =
+            document.createDocumentFragment();
+
+          const cardFragment =
+            document.createDocumentFragment();
+
+          for (
+            let index = startIndex;
+            index < endIndex;
+            index++
+          ) {
+            const character =
+              filtered[index];
 
             // Desktop table
 
@@ -367,27 +400,47 @@
                 : "none";
 
             if (displayMode === "full") {
-              nameCell.textContent = character.name;
-              familyCell.textContent = character.familyName;
+              nameCell.textContent =
+                character.name;
+
+              familyCell.textContent =
+                character.familyName;
             }
             else if (displayMode === "name") {
-              nameCell.textContent = character.name;
-              familyCell.style.display = "none";
-              genderCell.style.display = "none";
-              racesCell.style.display = "none";
+              nameCell.textContent =
+                character.name;
+
+              familyCell.style.display =
+                "none";
+
+              genderCell.style.display =
+                "none";
+
+              racesCell.style.display =
+                "none";
             }
             else {
-              nameCell.style.display = "none";
-              familyCell.textContent = character.familyName;
-              genderCell.style.display = "none";
-              racesCell.style.display = "none";
+              nameCell.style.display =
+                "none";
+
+              familyCell.textContent =
+                character.familyName;
+
+              genderCell.style.display =
+                "none";
+
+              racesCell.style.display =
+                "none";
             }
 
-            genderCell.textContent = character.gender;
+            genderCell.textContent =
+              character.gender;
 
             racesCell.textContent =
               character.races
-                .filter(race => race.trim() !== "")
+                .filter(
+                  race => race.trim() !== ""
+                )
                 .join(", ");
 
             const editLink =
@@ -399,12 +452,15 @@
             editLink.textContent =
               "Edit";
 
-            editCell.appendChild(editLink);
+            editCell.appendChild(
+              editLink
+            );
 
             const ignoreForm =
               document.createElement("form");
 
-            ignoreForm.method = "post";
+            ignoreForm.method =
+              "post";
 
             ignoreForm.action =
               character.ignore
@@ -414,16 +470,21 @@
             const ignoreButton =
               document.createElement("button");
 
-            ignoreButton.type = "submit";
+            ignoreButton.type =
+              "submit";
 
             ignoreButton.textContent =
               character.ignore
                 ? "Unignore"
                 : "Ignore";
 
-            ignoreForm.appendChild(ignoreButton);
+            ignoreForm.appendChild(
+              ignoreButton
+            );
 
-            editCell.appendChild(ignoreForm);
+            editCell.appendChild(
+              ignoreForm
+            );
 
             row.appendChild(nameCell);
             row.appendChild(familyCell);
@@ -431,7 +492,7 @@
             row.appendChild(racesCell);
             row.appendChild(editCell);
 
-            tbody.appendChild(row);
+            tableFragment.appendChild(row);
 
 
             // Mobile card
@@ -478,7 +539,9 @@
 
               races.innerHTML =
                 `<span class="character-card-label">Races:</span> ${character.races
-                  .filter(race => race.trim() !== "")
+                  .filter(
+                    race => race.trim() !== ""
+                  )
                   .join(", ")
                 }`;
 
@@ -562,11 +625,28 @@
               card.appendChild(actions);
             }
 
-            characterCards.appendChild(card);
-          });
+            cardFragment.appendChild(card);
+          }
 
-        document.getElementById("count").textContent =
-          `Showing ${filtered.length} of ${characters.length} characters`;
+          tbody.appendChild(tableFragment);
+          characterCards.appendChild(cardFragment);
+
+          document.getElementById("count").textContent =
+            `Showing ${endIndex} of ${characters.length} characters`;
+
+          if (endIndex < filtered.length) {
+            setTimeout(
+              () => renderBatch(endIndex),
+              0
+            );
+          }
+          else {
+            document.getElementById("count").textContent =
+              `Showing ${filtered.length} of ${characters.length} characters`;
+          }
+        }
+
+        renderBatch(0);
       }
 
       filterCharacters();
